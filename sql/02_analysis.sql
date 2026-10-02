@@ -39,3 +39,25 @@ SELECT
         / LAG(revenue) OVER (ORDER BY month) * 100)::numeric, 1) AS growth_pct
 FROM monthly
 ORDER BY month;
+
+select
+	coalesce(t.product_category_name_english, p.product_category_name) as category,
+	count(distinct oi.order_id) as orders,
+	round(sum(oi.price)::numeric, 2) as revenue
+from olist.olist_order_items_dataset oi
+join olist.olist_products_dataset p on oi.product_id = p.product_id 
+left join olist.product_category_name_translation t
+on p.product_category_name = t.product_category_name 
+group by 1
+order by revenue desc 
+limit 10;
+
+SELECT
+  COUNT(*) AS delivered_orders,
+  SUM(CASE WHEN order_delivered_customer_date::timestamp > order_estimated_delivery_date::timestamp
+           THEN 1 ELSE 0 END) AS late_orders,
+  ROUND(100.0 * SUM(CASE WHEN order_delivered_customer_date::timestamp > order_estimated_delivery_date::timestamp
+           THEN 1 ELSE 0 END) / COUNT(*), 2) AS late_pct
+FROM olist.olist_orders_dataset
+WHERE order_status = 'delivered'
+  AND order_delivered_customer_date IS NOT NULL;
